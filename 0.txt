@@ -1,0 +1,13 @@
+1.txt - Record and digitize speech signals, and explore quantization effects.
+2.txt - Understand the concept of sampling and its impact on speech signals
+3.txt - Generate and interpret the spectrogram of speech signals
+4.txt - Extract MFCC features from speech signals.
+5.txt - Perform LPC analysis on speech signals.
+6.txt - Synthesize speech signals using different techniques.
+7.txt - Detect voiced and unvoiced regions in a speech signal.
+8.txt - Identify and analyze formants in speech signals.
+9.txt - Train a basic speech recognition model using a small dataset.
+10.txt - Create a practical application using speech recognition for voice commands.
+11.txt - Train a model to recognize different speakers.
+12.txt - Preprocess data for speaker identification
+13.txt - Train a model to identify speakers from a given set of audio samples.
