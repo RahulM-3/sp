@@ -1,0 +1,58 @@
+import os
+import numpy as np
+import librosa
+from sklearn.preprocessing import LabelEncoder
+
+def load_audio(file_path, target_length=3, sr=16000):
+    """
+    Load an audio file, resample to sr, and pad/trim to target_length (seconds).
+    """
+    y, _ = librosa.load(file_path, sr=sr)
+    max_len = sr * target_length
+
+    if len(y) > max_len:
+        y = y[:max_len]  # trim
+    else:
+        # pad with zeros if shorter than max_len
+        padding = max_len - len(y)
+        y = np.pad(y, (0, padding), mode='constant')
+
+    return y
+
+def extract_features(y, sr=16000, n_mfcc=13, n_fft=512):
+    """
+    Extract MFCC features from audio signal.
+    """
+    mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=n_mfcc, n_fft=n_fft)
+    return np.mean(mfccs.T, axis=0)
+
+def preprocess_dataset(data_dir, target_length=3, sr=16000):
+    """
+    Preprocess all .wav files in data_dir, extract features, and encode labels.
+    """
+    X = []
+    y = []
+
+    for filename in os.listdir(data_dir):
+        if filename.endswith('.wav'):
+            speaker_label = filename.split('_')[0]  # Assuming speaker label is prefix
+            file_path = os.path.join(data_dir, filename)
+
+            y_audio = load_audio(file_path, target_length=target_length, sr=sr)
+            features = extract_features(y_audio, sr=sr)
+            X.append(features)
+            y.append(speaker_label)
+
+    X = np.array(X)
+    le = LabelEncoder()
+    y_encoded = le.fit_transform(y)
+
+    return X, y_encoded, le
+
+# Example usage:
+data_dir = 'C:\\Users\\24ai\\Downloads\\free-spoken-digit-dataset-master\\free-spoken-digit-dataset-master\\recordings'  # Update path as needed
+X, y_encoded, label_encoder = preprocess_dataset(data_dir)
+
+print("Feature shape:", X.shape)
+print("Encoded labels:", np.unique(y_encoded))
+print("Speaker classes:", label_encoder.classes_)
