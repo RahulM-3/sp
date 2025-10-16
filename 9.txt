@@ -1,0 +1,54 @@
+import torch
+import torchaudio
+from torchaudio.datasets import SPEECHCOMMANDS
+import numpy as np
+from python_speech_features import mfcc
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
+
+# 1. Load the dataset (will download automatically if needed)
+dataset = SPEECHCOMMANDS(root="./", download=True)
+
+# 2. Filter samples to just two classes: 'yes' and 'no'
+labels_to_use = ['yes', 'no']
+
+filtered_samples = []
+filtered_labels = []
+
+print("Filtering dataset...")
+for waveform, sample_rate, label, *_ in dataset:
+    if label in labels_to_use:
+        filtered_samples.append((waveform, sample_rate))
+        filtered_labels.append(label)
+
+print(f"Number of samples: {len(filtered_samples)}")
+
+# 3. Extract MFCC features
+def extract_features_torch(waveform, sample_rate):
+    waveform = waveform.numpy().squeeze()
+    mfcc_feat = mfcc(waveform, sample_rate, numcep=13, nfft=1200)
+    mfcc_mean = np.mean(mfcc_feat, axis=0)
+    return mfcc_mean
+
+print("Extracting features...")
+features = np.array([extract_features_torch(w, sr) for w, sr in filtered_samples])
+labels = np.array(filtered_labels)
+
+# 4. Encode labels to integers
+le = LabelEncoder()
+labels_enc = le.fit_transform(labels)
+
+# 5. Train-test split
+X_train, X_test, y_train, y_test = train_test_split(features, labels_enc, test_size=0.2, random_state=42)
+
+# 6. Train an SVM classifier
+print("Training SVM classifier...")
+model = SVC(kernel='linear')
+model.fit(X_train, y_train)
+
+# 7. Predict and evaluate
+y_pred = model.predict(X_test)
+acc = accuracy_score(y_test, y_pred)
+print(f"Test accuracy: {acc * 100:.2f}%")
