@@ -1,0 +1,34 @@
+import librosa
+import librosa.display
+import numpy as np
+import matplotlib.pyplot as plt
+from IPython.display import Audio
+import os
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+# Step 2: Set your local audio file path here (change this)
+filename = "C:\\Users\\maris\\Downloads\\pure-tone.wav"  # ⬅️ Change this to your actual file path
+
+# Step 3: Load audio file
+if not os.path.exists(filename):
+    raise FileNotFoundError("Audio file not found!")
+
+audio, sr = librosa.load(filename, sr=None)
+print(f"Loaded audio: {filename}")
+print(f"Sample Rate: {sr} Hz")
+print(f"Duration: {len(audio)/sr:.2f} seconds")
+
+# Step 4: Generate spectrogram
+plt.figure(figsize=(12, 5))
+D = librosa.amplitude_to_db(np.abs(librosa.stft(audio)), ref=np.max)
+librosa.display.specshow(D, sr=sr, x_axis='time', y_axis='log', cmap='viridis')
+plt.title('Spectrogram (log scale)')
+plt.colorbar(format="%+2.0f dB")
+plt.xlabel("Time (s)")
+plt.ylabel("Frequency (Hz)")
+plt.tight_layout()
+plt.show()
+
+# Step 5: Audio Playback
+display(Audio(audio, rate=sr))
