@@ -1,0 +1,65 @@
+import sounddevice as sd
+import numpy as np
+import matplotlib.pyplot as plt
+import soundfile as sf
+from IPython.display import Audio, display
+
+# Step 2: Record audio
+duration = 5  # seconds
+fs = 16000    # Sampling rate
+
+print("Recording... Speak now!")
+recording = sd.rec(int(duration * fs), samplerate=fs, channels=1, dtype='float32')
+sd.wait()  # Wait until recording is finished
+print("Recording complete.")
+
+# Flatten to 1D
+audio = recording.flatten()
+
+# Step 3: Plot original waveform
+plt.figure(figsize=(10, 3))
+plt.plot(audio)
+plt.title("Original Speech Signal")
+plt.xlabel("Sample Index")
+plt.ylabel("Amplitude")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# Step 4: Quantization function
+def quantize(signal, bits):
+    norm = signal / np.max(np.abs(signal))  # normalize to [-1, 1]
+    levels = 2 ** bits
+    quantized = np.round(norm * (levels / 2 - 1)) / (levels / 2 - 1)
+    return quantized * np.max(np.abs(signal))  # scale back
+
+# Step 5: Apply 8-bit and 4-bit quantization
+audio_8bit = quantize(audio, 8)
+audio_4bit = quantize(audio, 4)
+
+# Step 6: Plot quantized signals
+plt.figure(figsize=(12, 3))
+plt.subplot(1, 2, 1)
+plt.plot(audio_8bit)
+plt.title("8-bit Quantized")
+
+plt.subplot(1, 2, 2)
+plt.plot(audio_4bit)
+plt.title("4-bit Quantized")
+plt.tight_layout()
+plt.show()
+
+# Step 7: Save audio files
+sf.write("original.wav", audio, fs)
+sf.write("quantized_8bit.wav", audio_8bit, fs)
+sf.write("quantized_4bit.wav", audio_4bit, fs)
+
+# Step 8: Playback (only in Jupyter/Colab)
+print("Original Audio:")
+display(Audio(audio, rate=fs))
+
+print("8-bit Quantized Audio:")
+display(Audio(audio_8bit, rate=fs))
+
+print("4-bit Quantized Audio:")
+display(Audio(audio_4bit, rate=fs))
