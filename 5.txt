@@ -1,0 +1,46 @@
+import numpy as np
+import librosa
+import matplotlib.pyplot as plt
+from librosa import lpc
+from IPython.display import Audio
+import os
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+# STEP 1: Set local file path
+filename = "C:/Users/maris/Downloads/pure-tone.wav"  # <-- Update your path if needed
+
+# STEP 2: Load audio
+if not os.path.exists(filename):
+    raise FileNotFoundError("Audio file not found!")
+
+audio, sr = librosa.load(filename, sr=None)
+print(f"Loaded {filename}")
+print(f"Sample Rate: {sr} Hz, Duration: {len(audio)/sr:.2f}s")
+
+# STEP 3: Use a 30ms speech segment for analysis
+frame_size = int(0.03 * sr)  # 30 ms
+frame = audio[:frame_size]
+windowed = frame * np.hamming(len(frame))
+
+# STEP 4: LPC analysis using librosa
+lpc_order = 16
+a = lpc(windowed, lpc_order)  # librosa returns only 'a'
+
+# STEP 5: Compute LPC spectrum
+w = np.linspace(0, np.pi, 512)
+h = 1 / np.abs(np.fft.fft(a, n=512)[:256])  # Positive freqs
+lpc_spectrum = 20 * np.log10(h / np.max(h))  # Normalize
+
+# STEP 6: Plot LPC spectrum
+plt.figure(figsize=(10, 4))
+plt.plot(np.linspace(0, sr/2, len(lpc_spectrum)), lpc_spectrum)
+plt.title(f"LPC Spectrum (order={lpc_order})")
+plt.xlabel("Frequency (Hz)")
+plt.ylabel("Magnitude (dB)")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# STEP 7: Listen to the original frame (optional)
+Audio(windowed, rate=sr)
