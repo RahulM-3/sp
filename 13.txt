@@ -1,0 +1,74 @@
+import os
+import zipfile
+import librosa
+import numpy as np
+from sklearn.preprocessing import LabelEncoder
+from sklearn.svm import SVC
+
+# ----------------------------
+# Paths
+zip_path = "/content/free-spoken-digit-dataset-master.zip"
+extract_path = "/content/free-spoken-digit-dataset-master/"
+
+# Extract zip if not already done
+if not os.path.exists(extract_path):
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        zip_ref.extractall(extract_path)
+
+# ----------------------------
+# Feature extraction function
+def extract_features(file_path, n_mfcc=13):
+    try:
+        audio, sr = librosa.load(file_path, sr=None)
+        mfccs = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=n_mfcc)
+        return np.mean(mfccs.T, axis=0)
+    except Exception as e:
+        print(f"Error loading {file_path}: {e}")
+        return None
+
+# ----------------------------
+# Collect features and speaker labels
+features = []
+labels = []
+
+for root, dirs, files in os.walk(extract_path):
+    for file_name in files:
+        if file_name.endswith(".wav"):
+            file_path = os.path.join(root, file_name)
+            mfccs = extract_features(file_path)
+            if mfccs is not None:
+                features.append(mfccs)
+                speaker = file_name.split("_")[1]  # e.g., 0_jackson_0.wav -> jackson
+                labels.append(speaker)
+
+features = np.array(features)
+labels = np.array(labels)
+
+# Encode speaker labels
+le = LabelEncoder()
+labels_encoded = le.fit_transform(labels)
+
+# ----------------------------
+# Train SVM on entire dataset
+clf = SVC(kernel="linear", probability=True)
+clf.fit(features, labels_encoded)
+
+# ----------------------------
+# Function to predict speaker from any sample
+def predict_speaker(file_path):
+    mfccs = extract_features(file_path)
+    if mfccs is None:
+        return "Invalid audio file"
+    mfccs = mfccs.reshape(1, -1)
+    pred = clf.predict(mfccs)
+    return le.inverse_transform(pred)[0]
+
+# ----------------------------
+# Take input from the user
+user_input = input("Enter the path of the audio file to identify the speaker: ").strip()
+
+if not os.path.isfile(user_input):
+    print("File does not exist. Please enter a valid .wav file path.")
+else:
+    speaker_name = predict_speaker(user_input)
+    print("Predicted speaker:", speaker_name)
