@@ -1,0 +1,48 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.io.wavfile import write
+from IPython.display import Audio
+import pyttsx3
+
+# --- 1. Basic Tone Synthesis ---
+def generate_sine_wave(freq, duration, sr=16000):
+    t = np.linspace(0, duration, int(sr * duration), False)
+    wave = 0.5 * np.sin(2 * np.pi * freq * t)
+    return wave.astype(np.float32)
+
+# Generate a 440 Hz tone for 2 seconds
+tone = generate_sine_wave(440, 2)
+write("tone.wav", 16000, tone)
+display(Audio("tone.wav", rate=16000))
+print("🔊 Sine wave (440 Hz)")
+
+# --- 2. Formant Synthesis (Simple vowel-like sound) ---
+def formant_synthesis(f1, f2, duration=1.0, sr=16000):
+    t = np.linspace(0, duration, int(sr * duration), False)
+    wave = (np.sin(2 * np.pi * f1 * t) + 0.5 * np.sin(2 * np.pi * f2 * t))
+    return (wave / np.max(np.abs(wave))).astype(np.float32)
+
+# Simulate a vowel /a/ (formants ~730Hz and ~1090Hz)
+vowel = formant_synthesis(730, 1090)
+write("vowel_a.wav", 16000, vowel)
+display(Audio("vowel_a.wav", rate=16000))
+print("🔊 Simulated vowel sound (/a/)")
+
+# --- 3. Concatenative Synthesis (joining phonemes manually) ---
+# For demo purposes, let's concatenate multiple sine tones (simulated phonemes)
+phoneme_seq = np.concatenate([
+    generate_sine_wave(500, 0.3),
+    generate_sine_wave(700, 0.3),
+    generate_sine_wave(900, 0.3)
+])
+write("concatenative.wav", 16000, phoneme_seq)
+display(Audio("concatenative.wav", rate=16000))
+print("🔊 Concatenative Synthesis (sequence of tones)")
+
+# --- 4. Text-to-Speech (Offline using pyttsx3) ---
+engine = pyttsx3.init()
+engine.setProperty('rate', 150)
+engine.save_to_file('Hello, I am a speech synthesizer!', 'tts_output.wav')
+engine.runAndWait()
+display(Audio("tts_output.wav"))
+print("🔊 Text-to-Speech Synthesis using pyttsx3")
