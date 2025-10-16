@@ -1,0 +1,66 @@
+import librosa
+import numpy as np
+import matplotlib.pyplot as plt
+from IPython.display import Audio
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+# === STEP 1: Load the audio file ===
+filename = "C:\\Users\\maris\\Downloads\\pure-tone.wav"  # Replace with your path
+signal, sr = librosa.load(filename, sr=None)
+duration = len(signal) / sr
+print(f"Sample Rate: {sr}, Duration: {duration:.2f}s")
+
+# === STEP 2: Frame parameters ===
+frame_length = int(0.025 * sr)  # 25 ms
+hop_length = int(0.010 * sr)    # 10 ms
+
+# === STEP 3: Compute features ===
+energy = np.array([
+    np.sum(np.square(signal[i:i+frame_length]))
+    for i in range(0, len(signal)-frame_length, hop_length)
+])
+
+zcr = librosa.feature.zero_crossing_rate(signal, frame_length=frame_length, hop_length=hop_length)[0]
+
+# === STEP 4: Thresholding (Fix lengths before comparison) ===
+min_len = min(len(energy), len(zcr))  # Ensure both arrays match
+energy = energy[:min_len]
+zcr = zcr[:min_len]
+
+energy_threshold = 0.02 * np.max(energy)
+zcr_threshold = 0.15
+
+voiced = (energy > energy_threshold) & (zcr < zcr_threshold)
+
+# === STEP 5: Plotting ===
+frames = np.arange(len(energy))
+t = librosa.frames_to_time(frames, sr=sr, hop_length=hop_length)
+
+plt.figure(figsize=(12, 6))
+
+plt.subplot(3, 1, 1)
+plt.plot(np.linspace(0, duration, len(signal)), signal)
+plt.title("Speech Signal")
+plt.xlabel("Time (s)")
+plt.grid(True)
+
+plt.subplot(3, 1, 2)
+plt.plot(t, energy)
+plt.axhline(y=energy_threshold, color='r', linestyle='--', label="Energy Threshold")
+plt.title("Short-Term Energy")
+plt.xlabel("Time (s)")
+plt.grid(True)
+
+plt.subplot(3, 1, 3)
+plt.plot(t, zcr)
+plt.axhline(y=zcr_threshold, color='g', linestyle='--', label="ZCR Threshold")
+plt.title("Zero Crossing Rate")
+plt.xlabel("Time (s)")
+plt.grid(True)
+
+plt.tight_layout()
+plt.show()
+
+# === Optional: Audio playback ===
+Audio(filename)
