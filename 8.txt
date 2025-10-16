@@ -1,0 +1,74 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import lfilter
+from scipy.signal.windows import hamming
+from scipy.io import wavfile
+from google.colab import files
+import io
+
+# --- Upload audio ---
+print("📁 Please upload a .wav file for analysis (or skip for demo)...")
+uploaded = files.upload()
+
+if uploaded:
+    filename = list(uploaded.keys())[0]
+    print(f"✅ File uploaded: {filename}")
+    sr, signal = wavfile.read(io.BytesIO(uploaded[filename]))
+    if signal.ndim > 1:
+        signal = signal[:, 0]  # use first channel if stereo
+else:
+    print("⚠️ No file uploaded. Generating a demo vowel-like sound.")
+    sr = 16000
+    t = np.linspace(0, 1, sr)
+    signal = np.sin(2*np.pi*200*t) + 0.5*np.sin(2*np.pi*800*t) + 0.3*np.sin(2*np.pi*2600*t)
+    signal /= np.max(np.abs(signal))
+
+
+# --- Formant analysis ---
+def analyze_formants(signal, sr, frame_length=0.03):
+    n = int(frame_length * sr)
+    start = len(signal)//2 - n//2
+    frame = signal[start:start+n]
+    frame = frame * hamming(len(frame))
+    
+    lpc_order = int(2 + sr / 1000)
+    
+    def lpc(x, order):
+        R = np.correlate(x, x, mode='full')[len(x)-1:]
+        R = R[:order+1]
+        a = np.zeros(order)
+        E = R[0]
+        for i in range(order):
+            if E == 0: break
+            k = (R[i+1] - np.dot(a[:i], R[1:i+1][::-1])) / E
+            a[:i] -= k * a[:i][::-1]
+            a[i] = k
+            E = (1 - k*2)
+        return np.concatenate(([1], -a)), E
+
+    A, E = lpc(frame, lpc_order)
+    roots = np.roots(A)
+    roots = [r for r in roots if np.imag(r) >= 0.01]
+    angs = np.angle(roots)
+    freqs = sorted(angs * (sr / (2 * np.pi)))
+
+    formants = []
+    for f in freqs:
+        if 90 < f < 5000:
+            formants.append(f)
+    return formants[:4]
+
+# --- Run analysis ---
+formants = analyze_formants(signal, sr)
+
+print("\n🔍 Estimated Formants (Hz):")
+for i, f in enumerate(formants):
+    print(f"F{i+1}: {f:.2f} Hz")
+
+# --- Plot waveform + spectrogram ---
+plt.figure(figsize=(12,5))
+plt.subplot(2,1,1)
+plt.plot(np.linspace(0, len(signal)/sr, len(signal)), signal)
+plt.title("Speech Waveform")
+plt.xlabel("Time (s)")
+plt.ylabel("Amplitude")
