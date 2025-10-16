@@ -1,0 +1,51 @@
+import librosa
+import librosa.display
+import numpy as np
+import matplotlib.pyplot as plt
+import soundfile as sf
+from IPython.display import Audio, display
+import os
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+# Step 2: Set your local file path here
+# Example: "C:/Users/YourName/Desktop/sample.wav"
+filename = "C:\\Users\\maris\\Downloads\\pure-tone.wav"  # <-- change this
+
+# Step 3: Check if file exists
+if not os.path.exists(filename):
+    raise FileNotFoundError(f"File not found: {filename}")
+
+print("Using audio file:", filename)
+
+# Step 4: Load audio
+original_audio, original_sr = librosa.load(filename, sr=None)
+print(f"Original sample rate: {original_sr} Hz")
+
+# Step 5: Define sampling rates to explore
+sampling_rates = [16000, 8000, 4000]
+
+# Step 6: Resample the audio to different sampling rates
+resampled_audios = {}
+for sr in sampling_rates:
+    resampled = librosa.resample(original_audio, orig_sr=original_sr, target_sr=sr)
+    resampled_audios[sr] = resampled
+
+# Step 7: Plot original and resampled waveforms
+plt.figure(figsize=(12, len(sampling_rates) * 2))
+
+for i, (sr, audio) in enumerate(resampled_audios.items()):
+    plt.subplot(len(sampling_rates), 1, i + 1)
+    librosa.display.waveshow(audio, sr=sr)
+    plt.title(f"Waveform at {sr} Hz")
+    plt.tight_layout()
+
+plt.show()
+
+# Step 8: Playback audio
+print(f"Original Audio ({original_sr} Hz):")
+display(Audio(original_audio, rate=original_sr))
+
+for sr in sampling_rates:
+    print(f"Resampled Audio ({sr} Hz):")
+    display(Audio(resampled_audios[sr], rate=sr))
